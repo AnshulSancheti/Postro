@@ -1,156 +1,111 @@
-// Product Card Component - Gen-Z Street Style
-import React from 'react';
+import { motion, type Transition, type Variants } from 'framer-motion';
+import clsx from 'clsx';
+import type { FC } from 'react';
 import type { Product } from '../types';
 import StockBadge from './StockBadge';
-import '../index.css';
+import { useToast } from './ToastProvider';
 
 interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
+const cardVariants: Variants = {
+  rest: { x: 0, y: 0, boxShadow: '4px 4px 0px 0px #0D0D0D' },
+  hover: { x: -4, y: -4, boxShadow: '8px 8px 0px 0px #0D0D0D' },
+  tap: { x: 0, y: 0, boxShadow: '0px 0px 0px 0px #0D0D0D' },
+};
+
+const mediaVariants: Variants = {
+  rest: { scale: 1, rotate: 0 },
+  hover: { scale: 1.1, rotate: -1 },
+  tap: { scale: 1.05, rotate: -0.5 },
+};
+
+const buttonVariants: Variants = {
+  rest: { x: 0, y: 0, boxShadow: 'none' },
+  hover: { x: -2, y: -2, boxShadow: '4px 4px 0px 0px #0D0D0D' },
+  tap: { x: 0, y: 0, boxShadow: '0px 0px 0px 0px #0D0D0D' },
+};
+
+const springTransition: Transition = { type: 'spring', stiffness: 400, damping: 25 };
+
+const ProductCard: FC<ProductCardProps> = ({ product, onSelect }) => {
+  const isSoldOut = product.stock === 0;
+  const { addToast } = useToast();
+
   const handleClick = () => {
-    if (product.stock > 0) {
-      onSelect(product);
-    } else {
-      alert('❌ SOLD OUT - This product is out of stock!');
+    if (isSoldOut) {
+      addToast('SOLD OUT • TRY ANOTHER DROP');
+      return;
     }
+
+    onSelect(product);
   };
 
+  const formattedTags = [product.type, product.category, product.subcategory].filter(Boolean) as string[];
+
   return (
-    <div className="product-card card card-shadow animate-slide-up">
-      {/* Product Image */}
-      <div className="product-image-container">
-        <img
+    <motion.div
+      className="group relative flex h-full flex-col overflow-hidden border-[3px] border-dark bg-surface"
+      initial="rest"
+      animate="rest"
+      whileHover="hover"
+      whileTap="tap"
+      variants={cardVariants}
+      transition={springTransition}
+    >
+      <div className="relative overflow-hidden border-b-[3px] border-dark bg-dark/5">
+        <motion.img
           src={product.imageUrl}
           alt={product.name}
-          className="product-image"
           loading="lazy"
+          className="aspect-[3/4] w-full object-cover"
+          variants={mediaVariants}
+          transition={springTransition}
         />
-        <div className="stock-badge-overlay">
+        <div className="absolute left-4 top-4">
           <StockBadge stock={product.stock} />
         </div>
       </div>
 
-      {/* Product Info */}
-      <div className="product-info">
-        <h3 className="product-name">{product.name}</h3>
+      <div className="flex flex-1 flex-col gap-5 p-6">
+        <p className="text-xs font-bold uppercase tracking-[0.5em] text-dark/40">
+          {product.type} DROP
+        </p>
+        <h3 className="font-display text-2xl font-black uppercase tracking-tight text-dark">
+          {product.name}
+        </h3>
 
-        {/* Tags */}
-        <div className="product-tags flex gap-sm mt-sm">
-          <span className="tag tag-accent">{product.type}</span>
-          <span className="tag">{product.category}</span>
-          {product.subcategory && (
-            <span className="tag">{product.subcategory}</span>
-          )}
+        <div className="flex flex-wrap gap-2">
+          {formattedTags.map((tag) => (
+            <span
+              key={tag}
+              className="border-[3px] border-dark bg-main/70 px-3 py-1 text-xs font-bold uppercase tracking-[0.1em] text-dark shadow-hard"
+            >
+              {tag}
+            </span>
+          ))}
         </div>
 
-        {/* Select Button */}
-        <button
-          className={`select-btn mt-md ${product.stock === 0 ? '' : 'primary'}`}
+        <motion.button
+          type="button"
           onClick={handleClick}
-          disabled={product.stock === 0}
+          disabled={isSoldOut}
+          className={clsx(
+            'mt-auto w-full border-t-[3px] border-dark px-6 py-4 text-xs font-bold uppercase tracking-[0.1em]',
+            'flex items-center justify-between bg-transparent text-dark transition-colors duration-200',
+            !isSoldOut && 'hover:bg-primary',
+            isSoldOut && 'cursor-not-allowed bg-dark text-main opacity-70'
+          )}
+          variants={isSoldOut ? undefined : buttonVariants}
+          transition={isSoldOut ? undefined : springTransition}
         >
-          {product.stock === 0 ? 'SOLD OUT' : 'SELECT'}
-        </button>
+          <span>{isSoldOut ? 'SOLD OUT' : 'ADD TO CART'}</span>
+          <span className="text-xl">↗</span>
+        </motion.button>
       </div>
-
-      <style>{`
-        .product-card {
-          overflow: hidden;
-          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-          background: var(--white);
-          border: 1px solid transparent;
-        }
-
-        .product-card:hover {
-          transform: translateY(-8px);
-          box-shadow: var(--shadow-float);
-          border-color: var(--black);
-        }
-
-        .product-image-container {
-          position: relative;
-          width: 100%;
-          aspect-ratio: 3/4;
-          overflow: hidden;
-          background: var(--gray-light);
-          border-bottom: var(--border-thick) solid var(--black);
-        }
-
-        .product-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-          transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
-          filter: grayscale(100%);
-        }
-        
-        .product-card:hover .product-image {
-            transform: scale(1.1);
-            filter: grayscale(0%);
-        }
-
-        .stock-badge-overlay {
-          position: absolute;
-          top: var(--space-md);
-          right: var(--space-md);
-          z-index: 2;
-        }
-
-        .product-info {
-          padding: var(--space-lg);
-          position: relative;
-        }
-
-        .product-name {
-          font-size: 1.25rem;
-          margin-bottom: var(--space-sm);
-          text-transform: uppercase;
-          line-height: 1.2;
-          font-weight: 800;
-        }
-
-        .product-tags {
-          flex-wrap: wrap;
-        }
-
-        .select-btn {
-          width: 100%;
-          padding: var(--space-md);
-          font-size: 1.1rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          border: var(--border-thick) solid var(--black);
-          background: var(--white);
-          color: var(--black);
-          transition: all 0.2s ease;
-        }
-        
-        .select-btn.primary {
-            background: var(--black);
-            color: var(--white);
-        }
-        
-        .select-btn:not(:disabled):hover {
-            background: var(--primary);
-            color: var(--black);
-            border-color: var(--black);
-            transform: translateY(-2px);
-            box-shadow: 4px 4px 0 var(--black);
-        }
-        
-        .select-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background: var(--gray-light);
-            border-color: var(--gray-mid);
-            color: var(--gray-mid);
-        }
-      `}</style>
-    </div>
+    </motion.div>
   );
 };
 

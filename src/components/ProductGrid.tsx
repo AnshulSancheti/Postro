@@ -4,6 +4,7 @@ import type { Product } from '../types';
 import ProductCard from './ProductCard';
 import { decreaseStock, getProduct } from '../firebase/products';
 import { logSale } from '../firebase/salesLog';
+import { useToast } from './ToastProvider';
 import '../index.css';
 
 interface ProductGridProps {
@@ -11,15 +12,18 @@ interface ProductGridProps {
     searchTerm: string;
     activeCategory?: string;
     activeSubcategory?: string;
+    onAddToCart?: (product: Product) => void;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
     products,
     searchTerm,
     activeCategory,
-    activeSubcategory
+    activeSubcategory,
+    onAddToCart
 }) => {
     const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+    const { addToast } = useToast();
 
 
     // Filter products based on search and category
@@ -61,7 +65,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             // Get current product data to ensure we have latest stock
             const currentProduct = await getProduct(product.id);
             if (!currentProduct || currentProduct.stock === 0) {
-                alert('❌ Product is out of stock!');
+                addToast('OUT OF STOCK • TRY ANOTHER DROP');
                 return;
             }
 
@@ -78,12 +82,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 currentProduct.stock - 1
             );
 
-            // No alert, just silent success
-            console.log(`Sold ${product.name}`);
+            addToast(`${product.name.toUpperCase()} • ADDED TO CART`);
+            onAddToCart?.(product);
         } catch (error) {
             console.error('Error selecting product:', error);
-            // Keep error alert so they know if it failed
-            alert('❌ ERROR: Failed to select product.');
+            addToast('ERROR • Failed to add item to cart');
         }
     };
 
@@ -155,6 +158,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                     grid-template-columns: repeat(4, 1fr);
                     gap: var(--space-xl);
                     width: 100%;
+                    align-items: stretch;
+                    grid-auto-rows: 1fr;
                 }
 
                 .empty-state {

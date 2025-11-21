@@ -7,13 +7,18 @@ import { addProduct, getAllProducts, deleteProduct } from '../firebase/products'
 import { getAllSalesLogs, getTopSellingProducts, clearAllSalesLogs } from '../firebase/salesLog';
 import type { Product, SaleLog } from '../types';
 import { format } from 'date-fns';
+import { useToast } from '../components/ToastProvider';
 import '../index.css';
 
 const AdminPage: React.FC = () => {
     const navigate = useNavigate();
+    const { addToast } = useToast();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState('');
+    const [authError, setAuthError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'upload' | 'logbook' | 'analytics'>('upload');
+
+    const ADMIN_PASSWORD = 'postro2025';
 
     // Upload form state
     const [productName, setProductName] = useState('');
@@ -30,8 +35,6 @@ const AdminPage: React.FC = () => {
     const [salesLogs, setSalesLogs] = useState<SaleLog[]>([]);
     const [topProducts, setTopProducts] = useState<{ productName: string; count: number }[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
-
-    const ADMIN_PASSWORD = 'postro2025';
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -54,24 +57,32 @@ const AdminPage: React.FC = () => {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        if (password === ADMIN_PASSWORD) {
-            setIsAuthenticated(true);
-        } else {
-            alert('❌ INCORRECT PASSWORD');
-            setPassword('');
+        if (password !== ADMIN_PASSWORD) {
+            setAuthError('Incorrect password');
+            addToast('INCORRECT PASSWORD');
+            return;
         }
+
+        setIsAuthenticated(true);
+        setPassword('');
+        setAuthError(null);
+        addToast('ADMIN MODE ENABLED');
+    };
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        addToast('Logged out safely');
     };
 
     const handleUploadProduct = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!imageUrl.trim()) {
-            alert('❌ Please enter an image URL');
+            addToast('IMAGE URL REQUIRED');
             return;
         }
 
         if (imageError) {
-            alert('❌ Image preview failed to load. Please check your URL.');
+            addToast('IMAGE PREVIEW FAILED • Check the URL');
             return;
         }
 
@@ -90,7 +101,7 @@ const AdminPage: React.FC = () => {
                 stock
             });
 
-            alert(`✅ SUCCESS!\n\n${productName} has been added to the store!`);
+            addToast(`${productName.toUpperCase()} • ADDED TO STORE`);
 
             setProductName('');
             setSubcategory('');
@@ -102,7 +113,7 @@ const AdminPage: React.FC = () => {
             loadProducts();
         } catch (error) {
             console.error('Error uploading product:', error);
-            alert('❌ ERROR: Failed to upload product. Check console for details.');
+            addToast('ERROR • Failed to upload product');
         } finally {
             setIsUploading(false);
         }
@@ -117,13 +128,13 @@ const AdminPage: React.FC = () => {
 
         try {
             await deleteProduct(productId);
-            alert(`✅ DELETED!\n\n"${productName}" has been removed from the store.`);
+            addToast(`${productName.toUpperCase()} • REMOVED`);
             loadProducts(); // Refresh the product list
         } catch (error: any) {
             console.error('Error deleting product:', error);
             console.error('Error code:', error.code);
             console.error('Error message:', error.message);
-            alert(`❌ ERROR: Failed to delete product.\n\nError: ${error.message}\n\nCheck console for details.`);
+            addToast('ERROR • Failed to delete product');
         }
     };
 
@@ -136,11 +147,11 @@ const AdminPage: React.FC = () => {
 
         try {
             await clearAllSalesLogs();
-            alert(`✅ CLEARED!\n\nAll sales logs have been deleted.`);
+            addToast('SALES LOG • CLEARED');
             loadSalesData(); // Refresh the sales data
         } catch (error: any) {
             console.error('Error clearing sales logs:', error);
-            alert(`❌ ERROR: Failed to clear sales logs.\n\nError: ${error.message}`);
+            addToast('ERROR • Failed to clear sales logs');
         }
     };
 
@@ -148,31 +159,29 @@ const AdminPage: React.FC = () => {
         return (
             <div className="admin-page">
                 <Header />
-                <div className="login-container">
-                    <div className="login-box card card-shadow">
-                        <h2>ADMIN LOGIN</h2>
+                <div className="login-container flex min-h-[70vh] items-center justify-center px-6 py-16">
+                    <div className="login-box w-full max-w-md border-[3px] border-dark bg-surface p-10 text-center shadow-hard">
+                        <p className="text-xs font-bold uppercase tracking-[0.5em] text-dark/40">Secure Console</p>
+                        <h2 className="mt-2 font-display text-3xl uppercase tracking-tight text-dark">Admin Login</h2>
                         <form onSubmit={handleLogin}>
                             <input
                                 type="password"
                                 placeholder="ENTER PASSWORD"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="mt-lg"
+                                className="mt-md w-full border-[3px] border-dark bg-main px-4 py-3 font-semibold uppercase tracking-[0.2em] text-dark"
+                                required
                             />
-                            <button type="submit" className="primary mt-md" style={{ width: '100%' }}>
+                            {authError && <p className="mt-sm text-sm font-semibold text-red-500">{authError}</p>}
+                            <button type="submit" className="primary mt-md w-full">
                                 LOGIN
                             </button>
                         </form>
-                        <button onClick={() => navigate('/')} className="mt-md" style={{ width: '100%' }}>
+                        <button onClick={() => navigate('/')} className="mt-md w-full">
                             BACK TO HOME
                         </button>
                     </div>
                 </div>
-                <style>{`
-          .login-container { display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: var(--space-2xl); }
-          .login-box { max-width: 400px; width: 100%; padding: var(--space-2xl); text-align: center; }
-          .login-box h2 { margin-bottom: var(--space-lg); }
-        `}</style>
             </div>
         );
     }
@@ -183,7 +192,7 @@ const AdminPage: React.FC = () => {
             <div className="admin-container container">
                 <div className="admin-header">
                     <h2 className="admin-title">ADMIN PANEL</h2>
-                    <button onClick={() => setIsAuthenticated(false)} className="danger">LOGOUT</button>
+                    <button onClick={handleLogout} className="danger">LOGOUT</button>
                 </div>
 
                 <div className="tabs">
@@ -375,8 +384,8 @@ const AdminPage: React.FC = () => {
         .admin-title { color: var(--neon-pink); }
         .tabs { display: flex; gap: var(--space-sm); margin-bottom: var(--space-xl); border-bottom: var(--border-thick) solid var(--black); }
         .tab-btn { padding: var(--space-md) var(--space-xl); background: transparent; border: none; border-bottom: var(--border-thick) solid transparent; font-family: var(--font-heading); font-size: 1rem; cursor: pointer; transition: all 0.15s ease; }
-        .tab-btn:hover { background: var(--gray-dark); color: var(--white); }
-        .tab-btn.active { background: var(--black); color: var(--neon-pink); border-bottom-color: var(--neon-pink); }
+        .tab-btn:hover { background: var(--primary); color: var(--black); }
+        .tab-btn.active { background: var(--secondary); color: var(--bg-main); border-bottom-color: var(--bg-main); }
         .tab-content { background: var(--white); padding: var(--space-xl); border: var(--border-thick) solid var(--black); }
         .upload-form { max-width: 800px; }
         .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-lg); }

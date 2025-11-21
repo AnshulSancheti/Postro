@@ -34,18 +34,23 @@ You need to create a Firebase project and add your credentials:
 
 ### 2. Add Firebase Credentials
 
-Update `src/firebase/config.ts` with your Firebase project credentials:
+Create a `.env` file (or copy `.env.example`) and paste the config values you copied above:
 
-```typescript
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+```bash
+cp .env.example .env
+# then edit .env with your Firebase values
 ```
+
+```env
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+```
+
+These environment variables are consumed via `import.meta.env` so they stay out of the bundled source.
 
 ### 3. Run the Development Server
 
@@ -57,9 +62,8 @@ Open http://localhost:5173 in your browser
 
 ### 4. Admin Access
 
-- Navigate to `/admin` route
-- Default password: **postro2025**
-- ⚠️ Change this password in production!
+- Navigate to `/admin`
+- Default password: **postro2025** (update `ADMIN_PASSWORD` in `src/pages/AdminPage.tsx` before shipping)
 
 ## 📱 Features
 

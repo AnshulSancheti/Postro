@@ -1,13 +1,13 @@
 // Home Page - Main Product Showcase
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import CategoryFilter from '../components/CategoryFilter';
 import SearchBar from '../components/SearchBar';
 import ProductGrid from '../components/ProductGrid';
 import HeroCarousel from '../components/HeroCarousel';
+import Marquee from '../components/Marquee';
 import { subscribeToProducts } from '../firebase/products';
 import type { Product } from '../types';
-import '../index.css';
 
 const HomePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -15,6 +15,7 @@ const HomePage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [activeSubcategory, setActiveSubcategory] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [orders, setOrders] = useState<{ product: Product; addedAt: Date }[]>([]);
 
   // Subscribe to real-time product updates
   useEffect(() => {
@@ -34,63 +35,77 @@ const HomePage: React.FC = () => {
   // Hero carousel slides
   const heroSlides = [
     {
-      image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200',
-      title: 'STREET ART POSTERS',
-      subtitle: 'Bold designs for your space • Premium quality • Fresh drops weekly',
-      cta: 'SHOP NOW'
+      image: 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1600&q=80',
+      title: 'CARS COLLECTION',
+      subtitle: 'Garage-worthy prints for petrolheads • Precision-detailed • Ready to frame',
+      cta: 'SHOP CARS'
     },
     {
-      image: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200',
+      image: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&w=1600&q=80',
       title: 'ANIME COLLECTION',
-      subtitle: 'Naruto, JJK, One Piece & more • Limited editions available',
-      cta: 'EXPLORE'
+      subtitle: 'S-ranked posters for every shounen arc • Limited drops weekly',
+      cta: 'SHOP ANIME'
     },
     {
-      image: 'https://images.unsplash.com/photo-1514897575457-c4db467cf78e?w=1200',
-      title: 'MOVIE CLASSICS',
-      subtitle: 'Iconic film posters • Retro & modern styles • Canvas & paper',
-      cta: 'VIEW ALL'
+      image: 'https://images.unsplash.com/photo-1463107971871-fbac9ddb920f?auto=format&fit=crop&w=1600&q=80',
+      title: 'MOVIE COLLECTION',
+      subtitle: 'Cinematic icons, remastered for your wall • Noir to neon palettes',
+      cta: 'SHOP MOVIES'
     }
   ];
 
+  const handleAddToCart = (product: Product) => {
+    setOrders((prev) => [{ product, addedAt: new Date() }, ...prev].slice(0, 6));
+  };
+
   return (
-    <div className="home-page">
+    <div className="min-h-screen bg-main text-dark">
       <Header />
 
-      {/* Hero Carousel */}
       <HeroCarousel slides={heroSlides} />
+      <Marquee className="border-t-0" />
 
-      {/* Search Section */}
-      <section className="search-section">
-        <div className="container">
-          <SearchBar onSearch={setSearchTerm} />
+      <section className="border-b-[3px] border-dark bg-surface/70 py-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-0">
+          <div className="rounded-none border-[3px] border-dark bg-surface p-6 shadow-hard sm:p-8">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.5em] text-dark/50">SCAN THE STACK</p>
+                <h3 className="font-display text-3xl font-black uppercase tracking-tight">FIND YOUR POSTER</h3>
+              </div>
+              <div className="w-full sm:max-w-md">
+                <SearchBar onSearch={setSearchTerm} />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <section className="main-content">
-        <div className="container">
-          <h2 className="section-heading">
-            <span className="heading-line"></span>
-            <span className="heading-text">ALL PRODUCTS</span>
-            <span className="heading-line"></span>
-          </h2>
+      <section className="py-16">
+        <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-0">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.6em] text-dark/40">POSTRO SELECTION</p>
+            <h2 className="font-display text-4xl font-black uppercase tracking-tight sm:text-5xl">ALL PRODUCTS</h2>
+            <div className="flex w-full max-w-md items-center gap-3 text-dark">
+              <span className="h-[3px] flex-1 bg-dark" />
+              <span className="text-xs font-bold uppercase tracking-[0.5em]">CURATED</span>
+              <span className="h-[3px] flex-1 bg-dark" />
+            </div>
+          </div>
 
-          <div className="content-layout">
-            {/* Sidebar Filter */}
-            <aside className="sidebar">
+          <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <aside className="lg:sticky lg:top-32">
               <CategoryFilter
                 onCategoryChange={handleCategoryChange}
                 activeCategory={activeCategory}
                 activeSubcategory={activeSubcategory}
               />
             </aside>
-
-            {/* Products Grid */}
-            <main className="products-main">
+            <div>
               {isLoading ? (
-                <div className="loading-container">
-                  <div className="loading-text">LOADING...</div>
+                <div className="flex h-64 flex-col items-center justify-center border-[3px] border-dashed border-dark bg-surface text-center shadow-hard">
+                  <span className="font-display text-3xl uppercase tracking-tight text-dark/40">LOADING</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.5em] text-dark/40">SYNCING INVENTORY</span>
                 </div>
               ) : (
                 <ProductGrid
@@ -98,150 +113,54 @@ const HomePage: React.FC = () => {
                   searchTerm={searchTerm}
                   activeCategory={activeCategory}
                   activeSubcategory={activeSubcategory}
+                  onAddToCart={handleAddToCart}
                 />
               )}
-            </main>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="site-footer">
-        <div className="container text-center">
-          <p className="footer-text">
-            <strong>POSTRO</strong> © 2025 • Gen-Z Street Style • postro.in
-          </p>
+      <section className="border-t-[3px] border-dark bg-surface/80 py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-0">
+          <div className="rounded-none border-[3px] border-dark bg-main p-6 shadow-hard">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.5em] text-dark/40">Live Queue</p>
+                <h3 className="font-display text-3xl font-black uppercase tracking-tight text-dark">Orders & Cart</h3>
+              </div>
+            </div>
+            {orders.length === 0 ? (
+              <p className="mt-6 text-sm font-semibold uppercase tracking-[0.3em] text-dark/40">No items yet. Tap “Add to cart” to start the queue.</p>
+            ) : (
+              <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {orders.map((entry, index) => (
+                  <div
+                    key={`${entry.product.id}-${entry.addedAt.getTime()}-${index}`}
+                    className="flex flex-col gap-3 border-[3px] border-dark bg-surface p-4 shadow-hard"
+                  >
+                    <p className="text-xs font-bold uppercase tracking-[0.4em] text-dark/50">
+                      {entry.addedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <h4 className="font-display text-xl font-black uppercase tracking-tight text-dark">{entry.product.name}</h4>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-dark/60">
+                      {entry.product.category} • {entry.product.type}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t-[3px] border-dark bg-dark py-8 text-primary">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 text-center text-xs font-bold uppercase tracking-[0.5em] sm:flex-row sm:justify-between sm:px-6 lg:px-0">
+          <span>POSTRO © 2025</span>
+          <span>STAY ACID • STAY BOLD</span>
+          <span>POSTRO.IN</span>
         </div>
       </footer>
-
-      <style>{`
-        .home-page {
-          min-height: 100vh;
-          background: var(--white);
-        }
-
-        .search-section {
-          background: var(--white);
-          padding: var(--space-2xl) 0;
-          border-bottom: var(--border-thin) solid rgba(0,0,0,0.1);
-        }
-
-        .section-heading {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: var(--space-3xl) 0 var(--space-2xl);
-          gap: var(--space-lg);
-        }
-
-        .heading-line {
-          flex: 1;
-          height: var(--border-thick);
-          background: var(--black);
-          max-width: 200px;
-        }
-
-        .heading-text {
-          font-family: var(--font-display);
-          font-size: 2.5rem;
-          letter-spacing: 0.05em;
-          color: var(--black);
-          padding: 0 var(--space-md);
-          position: relative;
-        }
-
-        .heading-text::before {
-          content: '';
-          position: absolute;
-          bottom: -5px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 60%;
-          height: 4px;
-          background: var(--primary);
-        }
-
-        .main-content {
-          padding-bottom: var(--space-3xl);
-        }
-
-        .content-layout {
-          display: grid;
-          grid-template-columns: 280px 1fr;
-          gap: var(--space-2xl);
-          align-items: start;
-        }
-
-        .sidebar {
-          position: sticky;
-          top: calc(100px + var(--space-lg));
-        }
-
-        .products-main {
-          min-height: 400px;
-        }
-
-        .site-footer {
-          background: var(--black);
-          color: var(--white);
-          padding: var(--space-2xl) 0;
-          border-top: var(--border-chunky) solid var(--primary);
-        }
-
-        .footer-text {
-          font-family: var(--font-body);
-          font-size: 0.9rem;
-          opacity: 0.8;
-        }
-
-        .loading-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          min-height: 400px;
-        }
-
-        .loading-text {
-          font-family: var(--font-display);
-          font-size: 3rem;
-          color: var(--primary);
-          animation: pulse 1s ease-in-out infinite;
-        }
-
-        @media (max-width: 900px) {
-          .section-heading {
-            margin: var(--space-2xl) 0 var(--space-xl);
-          }
-
-          .heading-line {
-            max-width: 100px;
-          }
-
-          .heading-text {
-            font-size: 2rem;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .content-layout {
-            grid-template-columns: 1fr;
-          }
-
-          .sidebar {
-            position: static;
-            margin-bottom: var(--space-xl);
-          }
-
-          .section-heading {
-            flex-direction: column;
-            gap: var(--space-sm);
-          }
-
-          .heading-line {
-            display: none;
-          }
-        }
-      `}</style>
     </div>
   );
 };

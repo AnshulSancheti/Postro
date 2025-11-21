@@ -11,10 +11,17 @@ import {
     Timestamp,
     limit
 } from 'firebase/firestore';
-import { db } from './config';
+import { db, firebaseConfigError } from './config';
 import type { SaleLog } from '../types';
 
-const salesLogCollection = collection(db, 'sales_log');
+const ensureDb = () => {
+    if (!db) {
+        throw new Error(firebaseConfigError ?? 'Firebase is not configured. Please set the required environment variables.');
+    }
+    return db;
+};
+
+const getSalesLogCollection = () => collection(ensureDb(), 'sales_log');
 
 // Log a sale
 export const logSale = async (
@@ -25,7 +32,7 @@ export const logSale = async (
     stockBefore: number,
     stockAfter: number
 ): Promise<void> => {
-    await addDoc(salesLogCollection, {
+    await addDoc(getSalesLogCollection(), {
         productId,
         productName,
         category,
@@ -38,7 +45,7 @@ export const logSale = async (
 
 // Get all sales logs (for admin)
 export const getAllSalesLogs = async (): Promise<SaleLog[]> => {
-    const q = query(salesLogCollection, orderBy('timestamp', 'desc'));
+    const q = query(getSalesLogCollection(), orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
 
     return snapshot.docs.map(doc => ({
@@ -51,7 +58,7 @@ export const getAllSalesLogs = async (): Promise<SaleLog[]> => {
 // Get recent sales logs
 export const getRecentSalesLogs = async (limitCount: number = 50): Promise<SaleLog[]> => {
     const q = query(
-        salesLogCollection,
+        getSalesLogCollection(),
         orderBy('timestamp', 'desc'),
         limit(limitCount)
     );
@@ -67,7 +74,7 @@ export const getRecentSalesLogs = async (limitCount: number = 50): Promise<SaleL
 // Get sales by category (for analytics)
 export const getSalesByCategory = async (category: string): Promise<SaleLog[]> => {
     const q = query(
-        salesLogCollection,
+        getSalesLogCollection(),
         where('category', '==', category),
         orderBy('timestamp', 'desc')
     );
@@ -83,7 +90,7 @@ export const getSalesByCategory = async (category: string): Promise<SaleLog[]> =
 // Get sales by product
 export const getSalesByProduct = async (productId: string): Promise<SaleLog[]> => {
     const q = query(
-        salesLogCollection,
+        getSalesLogCollection(),
         where('productId', '==', productId),
         orderBy('timestamp', 'desc')
     );
@@ -114,7 +121,7 @@ export const getTopSellingProducts = async (): Promise<{ productName: string; co
 // Analytics: Get sales by date range
 export const getSalesByDateRange = async (startDate: Date, endDate: Date): Promise<SaleLog[]> => {
     const q = query(
-        salesLogCollection,
+        getSalesLogCollection(),
         where('timestamp', '>=', Timestamp.fromDate(startDate)),
         where('timestamp', '<=', Timestamp.fromDate(endDate)),
         orderBy('timestamp', 'desc')
@@ -130,15 +137,15 @@ export const getSalesByDateRange = async (startDate: Date, endDate: Date): Promi
 
 // Analytics: Get total sales count
 export const getTotalSalesCount = async (): Promise<number> => {
-    const snapshot = await getDocs(salesLogCollection);
+    const snapshot = await getDocs(getSalesLogCollection());
     return snapshot.size;
 };
 
 // Clear all sales logs (for admin - useful for clearing test data)
 export const clearAllSalesLogs = async (): Promise<void> => {
-    const snapshot = await getDocs(salesLogCollection);
+    const snapshot = await getDocs(getSalesLogCollection());
     const deletePromises = snapshot.docs.map(docSnapshot =>
-        deleteDoc(doc(db, 'sales_log', docSnapshot.id))
+        deleteDoc(doc(ensureDb(), 'sales_log', docSnapshot.id))
     );
     await Promise.all(deletePromises);
 };

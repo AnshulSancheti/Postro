@@ -1,20 +1,36 @@
 // Firebase Configuration
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
-const firebaseConfig = {
-    apiKey: "AIzaSyDXdZwTlrHVJFtSfuxLUoO6n7qprJna13w",
-    authDomain: "postro-b3503.firebaseapp.com",
-    projectId: "postro-b3503",
-    storageBucket: "postro-b3503.firebasestorage.app",
-    messagingSenderId: "249555334306",
-    appId: "1:249555334306:web:c279c563697845b66e93fb"
+type FirebaseConfigKeys =
+    | 'apiKey'
+    | 'authDomain'
+    | 'projectId'
+    | 'storageBucket'
+    | 'messagingSenderId'
+    | 'appId';
+
+const firebaseConfig: FirebaseOptions = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '',
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '',
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
+    appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+export const missingFirebaseKeys = Object.entries(firebaseConfig)
+    .filter(([, value]) => !value)
+    .map(([key]) => key as FirebaseConfigKeys);
 
-// Initialize Firestore
-export const db = getFirestore(app);
+export const isFirebaseConfigured = missingFirebaseKeys.length === 0;
+export const firebaseConfigError = !isFirebaseConfigured
+    ? `Missing Firebase environment variable(s): ${missingFirebaseKeys.join(', ')}`
+    : null;
 
-export default app;
+export const firebaseApp: FirebaseApp | null = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+export const db: Firestore | null = firebaseApp ? getFirestore(firebaseApp) : null;
+export const auth: Auth | null = firebaseApp ? getAuth(firebaseApp) : null;
+
+export default firebaseApp;
