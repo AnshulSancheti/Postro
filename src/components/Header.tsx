@@ -1,270 +1,153 @@
-// Header Component - Neo-Brutalist Navigation with Hamburger Menu
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import CategoryFilter from './CategoryFilter';
-import '../index.css';
+import { AnimatePresence, motion, type Transition } from 'framer-motion';
+import clsx from 'clsx';
+import type { FC } from 'react';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
-interface HeaderProps {
-  onCategoryChange?: (category: string, subcategory?: string) => void;
-  activeCategory?: string;
-  activeSubcategory?: string;
-}
+const navLinks = [
+  { label: 'HOME', to: '/' },
+  { label: 'ADMIN', to: '/admin' },
+];
 
-const Header: React.FC<HeaderProps> = ({ onCategoryChange, activeCategory, activeSubcategory }) => {
+const spring: Transition = { type: 'spring', stiffness: 400, damping: 25 };
+
+const Header: FC = () => {
+  const { pathname } = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleCategoryChange = (category: string, subcategory?: string) => {
-    if (onCategoryChange) {
-      onCategoryChange(category, subcategory);
-    }
-    // Close menu on mobile after selection
-    if (window.innerWidth < 768) {
-      setIsMenuOpen(false);
-    }
-  };
+  useEffect(() => {
+    document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMenuOpen]);
 
   return (
     <>
-      <header className="site-header">
-        <div className="header-content container">
-          {/* Hamburger Menu Button */}
-          <button className="hamburger-btn" onClick={toggleMenu} aria-label="Toggle menu">
-            <span className={`hamburger-icon ${isMenuOpen ? 'open' : ''}`}>
-              <span></span>
-              <span></span>
-              <span></span>
+      <header className="sticky top-0 z-40 border-b-[3px] border-dark bg-main/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <motion.button
+            type="button"
+            className="flex h-12 w-12 items-center justify-center rounded-none border-[3px] border-dark bg-surface shadow-hard md:hidden"
+            aria-label="Open menu"
+            onClick={() => setIsMenuOpen(true)}
+            whileHover={{ x: -4, y: -4, boxShadow: '8px 8px 0px 0px #0D0D0D' }}
+            whileTap={{ x: 0, y: 0, boxShadow: '0px 0px 0px 0px #0D0D0D' }}
+            transition={spring}
+          >
+            <span className="flex flex-col gap-1.5">
+              <span className="h-[3px] w-6 bg-dark" />
+              <span className="h-[3px] w-6 bg-dark" />
+              <span className="h-[3px] w-6 bg-dark" />
             </span>
-          </button>
+          </motion.button>
 
-          {/* Logo - Now using image */}
-          <Link to="/" className="logo-link">
-            <img src="/postro-logo.jpg" alt="POSTRO" className="logo-image" />
+          <Link to="/" className="flex items-center gap-4 text-dark">
+            <motion.img
+              src="/postro-logo.jpg"
+              alt="POSTRO"
+              className="h-10 w-10 rounded-none border-[3px] border-dark object-cover shadow-hard"
+              whileHover={{ scale: 1.05, rotate: -2, x: -4, y: -4, boxShadow: '8px 8px 0px 0px #0D0D0D' }}
+              whileTap={{ scale: 1, rotate: 0, x: 0, y: 0, boxShadow: '0px 0px 0px 0px #0D0D0D' }}
+              transition={spring}
+            />
+            <span className="hidden font-display text-xl font-black uppercase tracking-tight sm:inline-flex">Postro</span>
           </Link>
 
-          {/* Navigation */}
-          <nav className="nav-links">
-            <Link to="/" className="nav-link">HOME</Link>
-            <Link to="/admin" className="nav-link admin-link">
-              <span className="tag tag-accent">ADMIN</span>
-            </Link>
+          <nav className="hidden items-center gap-8 md:flex">
+            {navLinks.map(({ label, to }) => {
+              const isActive = pathname === to;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className="relative overflow-hidden px-2 py-1 text-sm font-black uppercase tracking-[0.2em]"
+                >
+                  <motion.span
+                    className="absolute inset-0 -z-10 bg-primary"
+                    initial={{ scaleX: isActive ? 1 : 0 }}
+                    animate={{ scaleX: isActive ? 1 : 0 }}
+                    whileHover={{ scaleX: 1 }}
+                    transition={spring}
+                    style={{ originX: 0 }}
+                  />
+                  <span className={clsx('relative z-10', isActive ? 'text-dark' : 'text-dark/60')}>
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </header>
 
-      {/* Slide-out Menu Overlay */}
-      {isMenuOpen && (
-        <div className="menu-overlay" onClick={toggleMenu}></div>
-      )}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <button
+              type="button"
+              className="absolute inset-0 bg-dark/70"
+              aria-label="Close menu overlay"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            <motion.div
+              className="relative flex h-full flex-col justify-between bg-dark px-6 py-8 text-primary sm:px-10 sm:py-12"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={spring}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-display text-xl uppercase tracking-[0.3em]">Menu</span>
+                <motion.button
+                  type="button"
+                  className="flex h-12 w-12 items-center justify-center rounded-none border-[3px] border-primary text-primary"
+                  onClick={() => setIsMenuOpen(false)}
+                  whileHover={{ scale: 1.05, rotate: 3 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={spring}
+                >
+                  ✕
+                </motion.button>
+              </div>
 
-      {/* Slide-out Menu */}
-      <div className={`slide-menu ${isMenuOpen ? 'open' : ''}`}>
-        <div className="slide-menu-header">
-          <h2 className="menu-title">CATEGORIES</h2>
-          <button className="close-btn" onClick={toggleMenu}>✕</button>
-        </div>
-        <div className="slide-menu-content">
-          <CategoryFilter
-            onCategoryChange={handleCategoryChange}
-          />
-        </div>
-      </div>
+              <motion.ul
+                className="flex flex-col gap-6 text-[3.5rem] font-black uppercase leading-[0.9] tracking-tight sm:text-[4rem]"
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                variants={{
+                  visible: { transition: { staggerChildren: 0.08 } },
+                  hidden: {},
+                }}
+              >
+                {navLinks.map(({ label, to }) => (
+                  <motion.li
+                    key={`${label}-${to}`}
+                    variants={{
+                      hidden: { y: '100%', opacity: 0 },
+                      visible: { y: 0, opacity: 1 },
+                    }}
+                  >
+                    <Link
+                      to={to}
+                      className="block"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {label}
+                    </Link>
+                  </motion.li>
+                ))}
+              </motion.ul>
 
-      <style>{`
-        .site-header {
-          background: var(--primary); /* Acid Green */
-          color: var(--black);
-          padding: var(--space-xs) 0;
-          border-bottom: var(--border-thick) solid var(--black);
-          position: sticky;
-          top: 0;
-          z-index: 1000;
-        }
-
-        .header-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: var(--space-lg);
-        }
-
-        /* Hamburger Button */
-        .hamburger-btn {
-          background: transparent;
-          border: none;
-          padding: var(--space-sm);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1001;
-        }
-
-        .hamburger-icon {
-          width: 30px;
-          height: 24px;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        }
-
-        .hamburger-icon span {
-          display: block;
-          width: 100%;
-          height: 3px;
-          background: var(--black);
-          transition: all 0.3s ease;
-        }
-
-        .hamburger-icon.open span:nth-child(1) {
-          transform: rotate(45deg) translateY(10px);
-        }
-
-        .hamburger-icon.open span:nth-child(2) {
-          opacity: 0;
-        }
-
-        .hamburger-icon.open span:nth-child(3) {
-          transform: rotate(-45deg) translateY(-10px);
-        }
-
-        .logo-link {
-          text-decoration: none;
-          display: flex;
-          align-items: center;
-          flex: 1;
-        }
-
-        .logo-image {
-          height: 35px;
-          width: auto;
-          object-fit: contain;
-          display: block;
-        }
-
-        .nav-links {
-          display: flex;
-          gap: var(--space-lg);
-          align-items: center;
-        }
-
-        .nav-link {
-          text-decoration: none;
-          color: var(--black);
-          font-family: var(--font-heading);
-          font-weight: 700;
-          font-size: 0.9rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          transition: all 0.2s ease;
-          position: relative;
-        }
-
-        .nav-link:hover {
-          transform: translateY(-2px);
-        }
-
-        .admin-link .tag {
-          cursor: pointer;
-        }
-
-        /* Menu Overlay */
-        .menu-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 1001;
-          animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        /* Slide-out Menu */
-        .slide-menu {
-          position: fixed;
-          top: 0;
-          left: -320px;
-          width: 320px;
-          height: 100vh;
-          background: var(--white);
-          border-right: var(--border-thick) solid var(--black);
-          box-shadow: var(--shadow-float);
-          z-index: 1002;
-          transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-          overflow-y: auto;
-        }
-
-        .slide-menu.open {
-          left: 0;
-        }
-
-        .slide-menu-header {
-          background: var(--black);
-          color: var(--primary);
-          padding: var(--space-lg);
-          border-bottom: var(--border-thick) solid var(--black);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          position: sticky;
-          top: 0;
-          z-index: 1;
-        }
-
-        .menu-title {
-          font-family: var(--font-heading);
-          font-size: 1.5rem;
-          margin: 0;
-          letter-spacing: 0.05em;
-        }
-
-        .close-btn {
-          background: transparent;
-          border: none;
-          color: var(--primary);
-          font-size: 2rem;
-          cursor: pointer;
-          padding: 0;
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: transform 0.2s ease;
-        }
-
-        .close-btn:hover {
-          transform: rotate(90deg);
-        }
-
-        .slide-menu-content {
-          padding: var(--space-lg);
-        }
-
-        @media (max-width: 768px) {
-          .logo-image {
-            height: 28px;
-          }
-
-          .nav-links {
-            gap: var(--space-sm);
-          }
-
-          .nav-link {
-            font-size: 0.8rem;
-          }
-        }
-      `}</style>
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.5em] text-primary/60">
+                <span>STREET-CODE</span>
+                <span>© POSTRO 2025</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

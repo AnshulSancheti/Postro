@@ -14,7 +14,14 @@ npm run dev
 
 ## ⚠️ Before Running
 
-You MUST add your Firebase credentials to `src/firebase/config.ts`
+1. Copy the env template and fill in your Firebase config:
+
+```bash
+cp .env.example .env
+# edit .env with your Firebase values
+```
+
+2. The runtime reads from `import.meta.env`, so **never** commit your `.env`. (The keys live outside the repo now.)
 
 See `SETUP.md` for detailed instructions.
 
@@ -29,7 +36,7 @@ See `SETUP.md` for detailed instructions.
 ## Admin Access
 
 - URL: `/admin`
-- Password: `postro2025`
+- Default password: `postro2025` (update in `src/pages/AdminPage.tsx` before production)
 
 ## Tech Stack
 

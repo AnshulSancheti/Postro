@@ -14,14 +14,21 @@ import {
     Timestamp,
     increment
 } from 'firebase/firestore';
-import { db } from './config';
+import { db, firebaseConfigError, isFirebaseConfigured } from './config';
 import type { Product } from '../types';
 
-const productsCollection = collection(db, 'products');
+const ensureDb = () => {
+    if (!db) {
+        throw new Error(firebaseConfigError ?? 'Firebase is not configured. Please set the required environment variables.');
+    }
+    return db;
+};
+
+const getProductsCollection = () => collection(ensureDb(), 'products');
 
 // Fetch all products
 export const getAllProducts = async (): Promise<Product[]> => {
-    const snapshot = await getDocs(query(productsCollection, orderBy('createdAt', 'desc')));
+    const snapshot = await getDocs(query(getProductsCollection(), orderBy('createdAt', 'desc')));
     return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -31,7 +38,7 @@ export const getAllProducts = async (): Promise<Product[]> => {
 
 // Get products by category
 export const getProductsByCategory = async (category: string): Promise<Product[]> => {
-    const q = query(productsCollection, where('category', '==', category), orderBy('createdAt', 'desc'));
+    const q = query(getProductsCollection(), where('category', '==', category), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -42,7 +49,7 @@ export const getProductsByCategory = async (category: string): Promise<Product[]
 
 // Get products by subcategory
 export const getProductsBySubcategory = async (subcategory: string): Promise<Product[]> => {
-    const q = query(productsCollection, where('subcategory', '==', subcategory), orderBy('createdAt', 'desc'));
+    const q = query(getProductsCollection(), where('subcategory', '==', subcategory), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -64,7 +71,11 @@ export const searchProducts = async (searchTerm: string): Promise<Product[]> => 
 
 // Real-time listener for all products
 export const subscribeToProducts = (callback: (products: Product[]) => void) => {
-    const q = query(productsCollection, orderBy('createdAt', 'desc'));
+    if (!isFirebaseConfigured || !db) {
+        console.error(firebaseConfigError ?? 'Firebase configuration missing. Cannot subscribe to products.');
+        return () => { };
+    }
+    const q = query(getProductsCollection(), orderBy('createdAt', 'desc'));
 
     return onSnapshot(q, (snapshot) => {
         const products = snapshot.docs.map(doc => ({
@@ -78,7 +89,7 @@ export const subscribeToProducts = (callback: (products: Product[]) => void) => 
 
 // Add new product (imageUrl is now a direct URL, no upload needed)
 export const addProduct = async (productData: Omit<Product, 'id' | 'createdAt'>): Promise<string> => {
-    const docRef = await addDoc(productsCollection, {
+    const docRef = await addDoc(getProductsCollection(), {
         ...productData,
         createdAt: Timestamp.now()
     });
@@ -87,13 +98,13 @@ export const addProduct = async (productData: Omit<Product, 'id' | 'createdAt'>)
 
 // Update product
 export const updateProduct = async (productId: string, updates: Partial<Product>): Promise<void> => {
-    const productRef = doc(db, 'products', productId);
+    const productRef = doc(ensureDb(), 'products', productId);
     await updateDoc(productRef, updates);
 };
 
 // Decrease stock when product is sold
 export const decreaseStock = async (productId: string): Promise<void> => {
-    const productRef = doc(db, 'products', productId);
+    const productRef = doc(ensureDb(), 'products', productId);
     await updateDoc(productRef, {
         stock: increment(-1)
     });
@@ -101,7 +112,7 @@ export const decreaseStock = async (productId: string): Promise<void> => {
 
 // Get single product
 export const getProduct = async (productId: string): Promise<Product | null> => {
-    const productRef = doc(db, 'products', productId);
+    const productRef = doc(ensureDb(), 'products', productId);
     const snapshot = await getDoc(productRef);
 
     if (!snapshot.exists()) return null;
@@ -115,7 +126,7 @@ export const getProduct = async (productId: string): Promise<Product | null> => 
 
 // Delete product
 export const deleteProduct = async (productId: string): Promise<void> => {
-    const productRef = doc(db, 'products', productId);
+    const productRef = doc(ensureDb(), 'products', productId);
     await deleteDoc(productRef);
 };
 

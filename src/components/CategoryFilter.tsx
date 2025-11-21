@@ -154,9 +154,10 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
 
         .category-btn.active {
-          background: var(--black);
-          color: var(--white);
+          background: var(--primary);
+          color: var(--black);
           border-color: var(--black);
+          box-shadow: var(--shadow-card);
         }
 
         .expand-icon {
@@ -195,7 +196,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           color: var(--black);
           font-weight: 700;
           border-left-color: var(--primary);
-          background: rgba(64, 188, 216, 0.1);
+          background: rgba(204, 255, 0, 0.2);
         }
 
         @media (max-width: 768px) {
