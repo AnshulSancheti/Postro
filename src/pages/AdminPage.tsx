@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import { addProduct, getAllProducts, deleteProduct } from '../firebase/products';
+import SearchBar from '../components/SearchBar';
+import { addProduct, getAllProducts, deleteProduct, increaseStock } from '../firebase/products';
 import { getAllSalesLogs, getTopSellingProducts, clearAllSalesLogs } from '../firebase/salesLog';
 import type { Product, SaleLog } from '../types';
 import { format } from 'date-fns';
@@ -16,7 +17,7 @@ const AdminPage: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState('');
     const [authError, setAuthError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'upload' | 'logbook' | 'analytics'>('upload');
+    const [activeTab, setActiveTab] = useState<'upload' | 'logbook' | 'top-selling' | 'analytics'>('upload');
 
     const ADMIN_PASSWORD = 'postro2025';
 
@@ -35,6 +36,10 @@ const AdminPage: React.FC = () => {
     const [salesLogs, setSalesLogs] = useState<SaleLog[]>([]);
     const [topProducts, setTopProducts] = useState<{ productName: string; count: number }[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [productTypeFilter, setProductTypeFilter] = useState<'poster' | 'sticker'>('poster');
+    const [addStockProductId, setAddStockProductId] = useState<string | null>(null);
+    const [addStockAmount, setAddStockAmount] = useState('1');
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -155,6 +160,51 @@ const AdminPage: React.FC = () => {
         }
     };
 
+    const handleAddStock = (productId: string) => {
+        // Toggle the inline add stock card
+        if (addStockProductId === productId) {
+            setAddStockProductId(null);
+            setAddStockAmount('1');
+        } else {
+            setAddStockProductId(productId);
+            setAddStockAmount('1');
+        }
+    };
+
+    const confirmAddStock = async (productId: string, productName: string) => {
+        if (!addStockAmount || isNaN(Number(addStockAmount)) || Number(addStockAmount) < 1) {
+            addToast('INVALID AMOUNT');
+            return;
+        }
+
+        try {
+            await increaseStock(productId, Number(addStockAmount));
+            addToast(`+${addStockAmount} STOCK • ${productName.toUpperCase()}`);
+            loadProducts();
+            setAddStockProductId(null);
+            setAddStockAmount('1');
+        } catch (error) {
+            console.error('Error adding stock:', error);
+            addToast('ERROR • Failed to add stock');
+        }
+    };
+
+    // Filter products for analytics tab
+    const filteredProducts = allProducts.filter(product => {
+        if (product.type !== productTypeFilter) return false;
+
+        if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
+            return (
+                product.name.toLowerCase().includes(lowerSearch) ||
+                product.tags.some(tag => tag.toLowerCase().includes(lowerSearch)) ||
+                product.category.toLowerCase().includes(lowerSearch)
+            );
+        }
+
+        return true;
+    });
+
     if (!isAuthenticated) {
         return (
             <div className="admin-page">
@@ -198,6 +248,7 @@ const AdminPage: React.FC = () => {
                 <div className="tabs">
                     <button className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>UPLOAD PRODUCT</button>
                     <button className={`tab-btn ${activeTab === 'logbook' ? 'active' : ''}`} onClick={() => setActiveTab('logbook')}>SALES LOGBOOK</button>
+                    <button className={`tab-btn ${activeTab === 'top-selling' ? 'active' : ''}`} onClick={() => setActiveTab('top-selling')}>TOP SELLING</button>
                     <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>ANALYTICS</button>
                 </div>
 
@@ -323,7 +374,7 @@ const AdminPage: React.FC = () => {
                     </div>
                 )}
 
-                {activeTab === 'analytics' && (
+                {activeTab === 'top-selling' && (
                     <div className="tab-content">
                         <div className="section-header">
                             <h3 className="mb-lg">TOP SELLING PRODUCTS</h3>
@@ -348,10 +399,71 @@ const AdminPage: React.FC = () => {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'analytics' && (
+                    <div className="tab-content">
+
+                        {/* SEARCH BAR SECTION */}
+                        <div className="admin-search-section">
+                            <div className="search-box">
+                                <p className="search-label">SCAN THE INVENTORY</p>
+                                <h3 className="search-title">FIND PRODUCTS</h3>
+                                <SearchBar onSearch={setSearchTerm} />
+                            </div>
+                        </div>
+
+                        {/* TOGGLE SWITCHES */}
+                        <div className="flex justify-center items-center gap-4 sm:gap-6 mb-8">
+                            {/* POSTERS BUTTON */}
+                            <button
+                                onClick={() => setProductTypeFilter('poster')}
+                                className={`
+                                relative px-4 sm:px-6 md:px-8 py-2 sm:py-3 font-display font-black uppercase text-base sm:text-lg border-[3px] border-dark transition-all duration-200
+                                ${productTypeFilter === 'poster'
+                                        ? 'bg-primary text-dark shadow-[6px_6px_0px_0px_#0D0D0D] translate-x-[-2px] translate-y-[-2px]'
+                                        : 'bg-surface text-dark/50 hover:text-dark hover:shadow-[4px_4px_0px_0px_#0D0D0D] shadow-[0px_0px_0px_0px_#0D0D0D]'
+                                    }
+                              `}
+                            >
+                                POSTERS
+                                {/* Active Indicator Dot */}
+                                {productTypeFilter === 'poster' && (
+                                    <span className="absolute -top-2 -right-2 w-4 h-4 bg-[#FF0099] border-2 border-dark rounded-none"></span>
+                                )}
+                            </button>
+
+                            <span className="font-display text-xl sm:text-2xl font-black text-dark/20">/</span>
+
+                            {/* STICKERS BUTTON */}
+                            <button
+                                onClick={() => setProductTypeFilter('sticker')}
+                                className={`
+                                relative px-4 sm:px-6 md:px-8 py-2 sm:py-3 font-display font-black uppercase text-base sm:text-lg border-[3px] border-dark transition-all duration-200
+                                ${productTypeFilter === 'sticker'
+                                        ? 'bg-primary text-dark shadow-[6px_6px_0px_0px_#0D0D0D] translate-x-[-2px] translate-y-[-2px]'
+                                        : 'bg-surface text-dark/50 hover:text-dark hover:shadow-[4px_4px_0px_0px_#0D0D0D] shadow-[0px_0px_0px_0px_#0D0D0D]'
+                                    }
+                              `}
+                            >
+                                STICKERS
+                                {productTypeFilter === 'sticker' && (
+                                    <span className="absolute -top-2 -right-2 w-4 h-4 bg-[#FF0099] border-2 border-dark rounded-none"></span>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* RESULT COUNT TAG */}
+                        <div className="mb-6">
+                            <div className="result-count-tag">
+                                SHOWING {filteredProducts.length} {productTypeFilter.toUpperCase()}S
+                            </div>
+                        </div>
 
                         <h3 className="mt-2xl mb-lg">CURRENT INVENTORY ({allProducts.length} products)</h3>
                         <div className="inventory-grid">
-                            {allProducts.map((product) => (
+                            {filteredProducts.map((product) => (
                                 <div key={product.id} className="inventory-item card card-shadow">
                                     <div className="inventory-image">
                                         <img src={product.imageUrl} alt={product.name} />
@@ -363,13 +475,53 @@ const AdminPage: React.FC = () => {
                                             <span className="tag mt-sm">{product.stock} in stock</span>
                                         </div>
                                     </div>
-                                    <button
-                                        className="danger delete-btn"
-                                        onClick={() => handleDeleteProduct(product.id!, product.name)}
-                                        title="Delete product"
-                                    >
-                                        🗑️ DELETE
-                                    </button>
+                                    <div className="inventory-actions">
+                                        <button
+                                            className="accent add-btn"
+                                            onClick={() => handleAddStock(product.id!)}
+                                            title="Add stock"
+                                        >
+                                            ➕ ADD
+                                        </button>
+
+                                        {/* INLINE ADD STOCK CARD */}
+                                        {addStockProductId === product.id && (
+                                            <div className="add-stock-card">
+                                                <label className="add-stock-label">QUANTITY</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={addStockAmount}
+                                                    onChange={(e) => setAddStockAmount(e.target.value)}
+                                                    className="add-stock-input"
+                                                    placeholder="1"
+                                                    autoFocus
+                                                />
+                                                <div className="add-stock-actions">
+                                                    <button
+                                                        className="accent add-stock-confirm"
+                                                        onClick={() => confirmAddStock(product.id!, product.name)}
+                                                    >
+                                                        ✓ ADD
+                                                    </button>
+                                                    <button
+                                                        className="add-stock-cancel"
+                                                        onClick={() => { setAddStockProductId(null); setAddStockAmount('1'); }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            className="danger delete-btn"
+                                            onClick={() => handleDeleteProduct(product.id!, product.name)}
+                                            title="Delete product"
+                                        >
+                                            🗑️ DELETE
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -414,7 +566,25 @@ const AdminPage: React.FC = () => {
         .inventory-image img { width: 100%; height: 100%; object-fit: cover; }
         .inventory-details { display: flex; flex-direction: column; gap: var(--space-sm); }
         .inventory-meta { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
-        .delete-btn { width: 100%; padding: var(--space-sm); font-size: 0.9rem; margin-top: auto; }
+        .inventory-actions { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: auto; }
+        .add-btn { width: 100%; padding: var(--space-sm); font-size: 0.9rem; }
+        .delete-btn { width: 100%; padding: var(--space-sm); font-size: 0.9rem; }
+        
+        /* Inline Add Stock Card */
+        .add-stock-card { background: var(--surface); border: 3px solid var(--black); padding: var(--space-md); margin-top: var(--space-sm); box-shadow: 4px 4px 0px 0px var(--black); }
+        .add-stock-label { font-family: var(--font-heading); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--gray-mid); display: block; margin-bottom: var(--space-sm); }
+        .add-stock-input { width: 100%; border: 3px solid var(--black); padding: var(--space-sm); font-family: var(--font-body); font-size: 1rem; font-weight: bold; margin-bottom: var(--space-md); }
+        .add-stock-actions { display: flex; gap: var(--space-sm); }
+        .add-stock-confirm { flex: 1; padding: var(--space-sm); font-size: 0.9rem; }
+        .add-stock-cancel { padding: var(--space-sm) var(--space-md); background: var(--surface); border: 3px solid var(--black); font-weight: bold; cursor: pointer; transition: all 0.15s ease; }
+        .add-stock-cancel:hover { background: var(--gray-light); }
+        
+        /* Search Section */
+        .admin-search-section { background: var(--surface); border: var(--border-thick) solid var(--black); padding: var(--space-xl); margin-bottom: var(--space-xl); box-shadow: var(--shadow-hard); }
+        .search-box { max-width: 600px; margin: 0 auto; }
+        .search-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3em; color: var(--gray-mid); }
+        .search-title { font-family: var(--font-display); font-size: 2rem; margin-bottom: var(--space-md); }
+        .result-count-tag { display: inline-block; background: var(--primary); border: 2px solid var(--black); padding: var(--space-sm) var(--space-md); font-weight: bold; font-size: 0.75rem; box-shadow: 2px 2px 0px 0px var(--black); text-transform: uppercase; letter-spacing: 0.2em; }
         @media (max-width: 768px) {
           .form-grid { grid-template-columns: 1fr; }
           .admin-header { flex-direction: column; gap: var(--space-md); align-items: flex-start); }

@@ -110,6 +110,15 @@ export const decreaseStock = async (productId: string): Promise<void> => {
     });
 };
 
+// Increase stock when admin adds inventory
+export const increaseStock = async (productId: string, amount: number = 1): Promise<void> => {
+    const productRef = doc(ensureDb(), 'products', productId);
+    await updateDoc(productRef, {
+        stock: increment(amount)
+    });
+};
+
+
 // Get single product
 export const getProduct = async (productId: string): Promise<Product | null> => {
     const productRef = doc(ensureDb(), 'products', productId);

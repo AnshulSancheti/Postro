@@ -1,7 +1,6 @@
 // Home Page - Main Product Showcase
 import React, { useEffect, useState } from 'react';
-import Header from '../components/Header';
-import CategoryFilter from '../components/CategoryFilter';
+import Navbar from '../components/Navbar';
 import SearchBar from '../components/SearchBar';
 import ProductGrid from '../components/ProductGrid';
 import HeroCarousel from '../components/HeroCarousel';
@@ -12,8 +11,7 @@ import type { Product } from '../types';
 const HomePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string>('');
-  const [activeSubcategory, setActiveSubcategory] = useState<string>('');
+  const [productTypeFilter, setProductTypeFilter] = useState<'poster' | 'sticker'>('poster');
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<{ product: Product; addedAt: Date }[]>([]);
 
@@ -26,11 +24,6 @@ const HomePage: React.FC = () => {
 
     return () => unsubscribe();
   }, []);
-
-  const handleCategoryChange = (category: string, subcategory?: string) => {
-    setActiveCategory(category);
-    setActiveSubcategory(subcategory || '');
-  };
 
   // Hero carousel slides
   const heroSlides = [
@@ -58,9 +51,12 @@ const HomePage: React.FC = () => {
     setOrders((prev) => [{ product, addedAt: new Date() }, ...prev].slice(0, 6));
   };
 
+  // Filter products by type
+  const filteredProducts = products.filter(product => product.type === productTypeFilter);
+
   return (
     <div className="min-h-screen bg-main text-dark">
-      <Header />
+      <Navbar />
 
       <HeroCarousel slides={heroSlides} />
       <Marquee className="border-t-0" />
@@ -82,8 +78,8 @@ const HomePage: React.FC = () => {
       </section>
 
       <section className="py-16">
-        <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-0">
-          <div className="flex flex-col items-center gap-4 text-center">
+        <div className="w-full max-w-[1400px] mx-auto px-4">
+          <div className="flex flex-col items-center gap-4 text-center mb-10">
             <p className="text-xs font-bold uppercase tracking-[0.6em] text-dark/40">POSTRO SELECTION</p>
             <h2 className="font-display text-4xl font-black uppercase tracking-tight sm:text-5xl">ALL PRODUCTS</h2>
             <div className="flex w-full max-w-md items-center gap-3 text-dark">
@@ -93,31 +89,67 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
-            <aside className="lg:sticky lg:top-32">
-              <CategoryFilter
-                onCategoryChange={handleCategoryChange}
-                activeCategory={activeCategory}
-                activeSubcategory={activeSubcategory}
-              />
-            </aside>
-            <div>
-              {isLoading ? (
-                <div className="flex h-64 flex-col items-center justify-center border-[3px] border-dashed border-dark bg-surface text-center shadow-hard">
-                  <span className="font-display text-3xl uppercase tracking-tight text-dark/40">LOADING</span>
-                  <span className="text-xs font-bold uppercase tracking-[0.5em] text-dark/40">SYNCING INVENTORY</span>
-                </div>
-              ) : (
-                <ProductGrid
-                  products={products}
-                  searchTerm={searchTerm}
-                  activeCategory={activeCategory}
-                  activeSubcategory={activeSubcategory}
-                  onAddToCart={handleAddToCart}
-                />
+          {/* BRUTALIST TOGGLE SWITCHES */}
+          <div className="flex justify-center items-center gap-6 mb-8">
+            {/* POSTERS BUTTON */}
+            <button
+              onClick={() => setProductTypeFilter('poster')}
+              className={`
+                relative px-4 sm:px-6 md:px-8 py-2 sm:py-3 font-display font-black uppercase text-base sm:text-lg border-[3px] border-dark transition-all duration-200
+                ${productTypeFilter === 'poster'
+                  ? 'bg-primary text-dark shadow-[6px_6px_0px_0px_#0D0D0D] translate-x-[-2px] translate-y-[-2px]'
+                  : 'bg-surface text-dark/50 hover:text-dark hover:shadow-[4px_4px_0px_0px_#0D0D0D] shadow-[0px_0px_0px_0px_#0D0D0D]'
+                }
+              `}
+            >
+              POSTERS
+              {/* Active Indicator Dot */}
+              {productTypeFilter === 'poster' && (
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-[#FF0099] border-2 border-dark rounded-none"></span>
               )}
+            </button>
+
+            <span className="font-display text-2xl font-black text-dark/20">/</span>
+
+            {/* STICKERS BUTTON */}
+            <button
+              onClick={() => setProductTypeFilter('sticker')}
+              className={`
+                relative px-4 sm:px-6 md:px-8 py-2 sm:py-3 font-display font-black uppercase text-base sm:text-lg border-[3px] border-dark transition-all duration-200
+                ${productTypeFilter === 'sticker'
+                  ? 'bg-primary text-dark shadow-[6px_6px_0px_0px_#0D0D0D] translate-x-[-2px] translate-y-[-2px]'
+                  : 'bg-surface text-dark/50 hover:text-dark hover:shadow-[4px_4px_0px_0px_#0D0D0D] shadow-[0px_0px_0px_0px_#0D0D0D]'
+                }
+              `}
+            >
+              STICKERS
+              {productTypeFilter === 'sticker' && (
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-[#FF0099] border-2 border-dark rounded-none"></span>
+              )}
+            </button>
+          </div>
+
+          {/* RESULT COUNT TAG */}
+          <div className="mb-6">
+            <div className="inline-block bg-primary border-2 border-dark px-3 py-1 font-body font-bold text-xs shadow-[2px_2px_0px_0px_#0D0D0D] uppercase tracking-[0.3em]">
+              SHOWING {filteredProducts.length} {productTypeFilter.toUpperCase()}S
             </div>
           </div>
+
+          {isLoading ? (
+            <div className="flex h-64 flex-col items-center justify-center border-[3px] border-dashed border-dark bg-surface text-center shadow-hard">
+              <span className="font-display text-3xl uppercase tracking-tight text-dark/40">LOADING</span>
+              <span className="text-xs font-bold uppercase tracking-[0.5em] text-dark/40">SYNCING INVENTORY</span>
+            </div>
+          ) : (
+            <ProductGrid
+              products={filteredProducts}
+              searchTerm={searchTerm}
+              activeCategory=""
+              activeSubcategory=""
+              onAddToCart={handleAddToCart}
+            />
+          )}
         </div>
       </section>
 
