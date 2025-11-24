@@ -103,10 +103,10 @@ export const updateProduct = async (productId: string, updates: Partial<Product>
 };
 
 // Decrease stock when product is sold
-export const decreaseStock = async (productId: string): Promise<void> => {
+export const decreaseStock = async (productId: string, amount: number = 1): Promise<void> => {
     const productRef = doc(ensureDb(), 'products', productId);
     await updateDoc(productRef, {
-        stock: increment(-1)
+        stock: increment(-amount)
     });
 };
 

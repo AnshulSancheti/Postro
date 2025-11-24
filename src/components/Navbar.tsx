@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
+import CartSidebar from './CartSidebar';
 
 const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const { setIsCartOpen, cartItemCount } = useCart();
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -35,11 +38,28 @@ const Navbar = () => {
 
                 {/* RIGHT SIDE ACTIONS (Cart, etc.) */}
                 <div className="flex items-center gap-4">
-                    <button className="font-bold font-[Space_Grotesk] border-2 border-black px-4 py-1 hover:bg-black hover:text-[#CCFF00] transition-colors shadow-[3px_3px_0px_0px_#000]">
-                        CART (0)
+                    <button
+                        onClick={() => setIsCartOpen(true)}
+                        className="group relative flex items-center gap-3 bg-white border-[3px] border-black px-5 py-2 hover:bg-black hover:text-[#CCFF00] transition-all shadow-[4px_4px_0px_0px_#000] hover:shadow-[6px_6px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_#000]"
+                    >
+                        <span className="font-[Space_Grotesk] font-bold text-lg tracking-wide">CART</span>
+                        <div className="relative">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:stroke-[#CCFF00] transition-colors">
+                                <path d="M9 20C9 21.1046 8.10457 22 7 22C5.89543 22 5 21.1046 5 20C5 18.8954 5.89543 18 7 18C8.10457 18 9 18.8954 9 20Z" />
+                                <path d="M20 20C20 21.1046 19.1046 22 18 22C16.8954 22 16 21.1046 16 20C16 18.8954 16.8954 18 18 18C19.1046 18 20 18.8954 20 20Z" />
+                                <path d="M1 1H4L6.68 14.39C6.77144 14.8504 7.02191 15.264 7.38755 15.5583C7.75318 15.8526 8.2107 16.009 8.68 16H19.4C19.8693 16.009 20.3268 15.8526 20.6925 15.5583C21.0581 15.264 21.3086 14.8504 21.4 14.39L23 6H6" />
+                            </svg>
+                            {cartItemCount > 0 && (
+                                <span className="absolute -top-3 -right-3 bg-[#FF0099] text-white text-xs font-[Unbounded] font-bold px-2 py-0.5 border-2 border-black min-w-[24px] text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+                                    {cartItemCount}
+                                </span>
+                            )}
+                        </div>
                     </button>
                 </div>
             </nav>
+
+            <CartSidebar />
 
             {/* --- SLIDE-OUT SIDEBAR (OVERLAY) --- */}
             {/* Dark Overlay */}

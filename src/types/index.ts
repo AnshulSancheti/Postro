@@ -29,3 +29,20 @@ export interface SaleLog {
     stockBefore: number;
     stockAfter: number;
 }
+
+export interface CartItem {
+    productId: string;
+    productName: string;
+    productType: 'poster' | 'sticker';
+    imageUrl: string;
+    quantity: number;
+}
+
+export interface Cart {
+    id?: string;
+    sessionId: string;
+    items: CartItem[];
+    createdAt: Date;
+    lastUpdated: Date;
+    expiresAt: Date;
+}

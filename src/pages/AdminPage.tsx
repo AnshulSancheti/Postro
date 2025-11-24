@@ -6,7 +6,8 @@ import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import { addProduct, getAllProducts, deleteProduct, increaseStock } from '../firebase/products';
 import { getAllSalesLogs, getTopSellingProducts, clearAllSalesLogs } from '../firebase/salesLog';
-import type { Product, SaleLog } from '../types';
+import { subscribeToAllCarts } from '../firebase/cart';
+import type { Product, SaleLog, Cart } from '../types';
 import { format } from 'date-fns';
 import { useToast } from '../components/ToastProvider';
 import '../index.css';
@@ -17,7 +18,7 @@ const AdminPage: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState('');
     const [authError, setAuthError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'upload' | 'logbook' | 'top-selling' | 'analytics'>('upload');
+    const [activeTab, setActiveTab] = useState<'upload' | 'logbook' | 'top-selling' | 'analytics' | 'orders'>('upload');
 
     const ADMIN_PASSWORD = 'postro2025';
 
@@ -36,6 +37,7 @@ const AdminPage: React.FC = () => {
     const [salesLogs, setSalesLogs] = useState<SaleLog[]>([]);
     const [topProducts, setTopProducts] = useState<{ productName: string; count: number }[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
+    const [liveCarts, setLiveCarts] = useState<Cart[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [productTypeFilter, setProductTypeFilter] = useState<'poster' | 'sticker'>('poster');
     const [addStockProductId, setAddStockProductId] = useState<string | null>(null);
@@ -45,6 +47,14 @@ const AdminPage: React.FC = () => {
         if (isAuthenticated) {
             loadSalesData();
             loadProducts();
+
+            const unsubscribeCarts = subscribeToAllCarts((carts) => {
+                setLiveCarts(carts);
+            });
+
+            return () => {
+                unsubscribeCarts();
+            };
         }
     }, [isAuthenticated]);
 
@@ -250,6 +260,7 @@ const AdminPage: React.FC = () => {
                     <button className={`tab-btn ${activeTab === 'logbook' ? 'active' : ''}`} onClick={() => setActiveTab('logbook')}>SALES LOGBOOK</button>
                     <button className={`tab-btn ${activeTab === 'top-selling' ? 'active' : ''}`} onClick={() => setActiveTab('top-selling')}>TOP SELLING</button>
                     <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>ANALYTICS</button>
+                    <button className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>ORDERS ({liveCarts.length})</button>
                 </div>
 
                 {activeTab === 'upload' && (
@@ -527,6 +538,84 @@ const AdminPage: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {activeTab === 'orders' && (
+                    <div className="tab-content">
+                        <div className="section-header">
+                            <h3 className="mb-lg">LIVE ORDERS ({liveCarts.length})</h3>
+                            <div className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+                                Real-time view of active carts
+                            </div>
+                        </div>
+
+                        {liveCarts.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">🛒</div>
+                                <h2 className="empty-text">NO ACTIVE ORDERS</h2>
+                                <p>Waiting for customers to start shopping...</p>
+                            </div>
+                        ) : (
+                            <div className="orders-grid">
+                                {liveCarts.map((cart) => {
+                                    // Calculate time remaining
+                                    const now = new Date();
+                                    const expiresAt = cart.expiresAt;
+                                    const diff = expiresAt.getTime() - now.getTime();
+                                    const minutes = Math.floor(diff / 60000);
+                                    const seconds = Math.floor((diff % 60000) / 1000);
+                                    const timeString = diff <= 0 ? 'EXPIRED' : `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                                    const isExpiringSoon = diff > 0 && diff < 10 * 60 * 1000; // Less than 10 mins
+
+                                    return (
+                                        <div key={cart.id} className="order-card card card-shadow">
+                                            <div className="order-header">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Session ID</span>
+                                                    <span className="font-[Unbounded] font-bold">{cart.sessionId.substring(0, 12)}...</span>
+                                                </div>
+                                                <div className={`expiration-badge ${isExpiringSoon ? 'urgent' : ''}`}>
+                                                    <span className="text-[10px] font-bold uppercase">Expires In</span>
+                                                    <span className="font-[Unbounded] font-bold text-lg">{timeString}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="order-items">
+                                                {cart.items && cart.items.length > 0 ? (
+                                                    cart.items.map((item, index) => (
+                                                        <div key={`${item.productId}-${index}`} className="order-item">
+                                                            <div className="w-12 h-12 border border-black bg-gray-200 shrink-0">
+                                                                <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <div className="flex-grow">
+                                                                <p className="font-bold text-sm leading-tight line-clamp-1">{item.productName}</p>
+                                                                <span className="text-[10px] uppercase bg-black text-white px-1">{item.productType}</span>
+                                                            </div>
+                                                            <div className="font-[Unbounded] font-bold text-lg">
+                                                                x{item.quantity}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="p-2 text-center text-gray-500 text-xs">No items</div>
+                                                )}
+                                            </div>
+
+                                            <div className="order-footer">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Total Items</span>
+                                                    <span className="font-[Unbounded] font-bold text-xl">{cart.items.reduce((acc, item) => acc + item.quantity, 0)}</span>
+                                                </div>
+                                                <div className="mt-2 text-[10px] font-bold uppercase text-gray-400 text-right">
+                                                    Last Active: {cart.lastUpdated ? format(cart.lastUpdated, 'HH:mm:ss') : 'Unknown'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <style>{`
@@ -534,7 +623,7 @@ const AdminPage: React.FC = () => {
         .admin-container { padding: var(--space-2xl) var(--space-lg); }
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2xl); padding-bottom: var(--space-lg); border-bottom: var(--border-thick) solid var(--black); }
         .admin-title { color: var(--neon-pink); }
-        .tabs { display: flex; gap: var(--space-sm); margin-bottom: var(--space-xl); border-bottom: var(--border-thick) solid var(--black); }
+        .tabs { display: flex; gap: var(--space-sm); margin-bottom: var(--space-xl); border-bottom: var(--border-thick) solid var(--black); flex-wrap: wrap; }
         .tab-btn { padding: var(--space-md) var(--space-xl); background: transparent; border: none; border-bottom: var(--border-thick) solid transparent; font-family: var(--font-heading); font-size: 1rem; cursor: pointer; transition: all 0.15s ease; }
         .tab-btn:hover { background: var(--primary); color: var(--black); }
         .tab-btn.active { background: var(--secondary); color: var(--bg-main); border-bottom-color: var(--bg-main); }
@@ -585,6 +674,33 @@ const AdminPage: React.FC = () => {
         .search-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3em; color: var(--gray-mid); }
         .search-title { font-family: var(--font-display); font-size: 2rem; margin-bottom: var(--space-md); }
         .result-count-tag { display: inline-block; background: var(--primary); border: 2px solid var(--black); padding: var(--space-sm) var(--space-md); font-weight: bold; font-size: 0.75rem; box-shadow: 2px 2px 0px 0px var(--black); text-transform: uppercase; letter-spacing: 0.2em; }
+        
+        /* Orders Tab */
+        .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-lg); }
+        .order-card { padding: 0; display: flex; flex-direction: column; background: var(--surface); border: 3px solid var(--black); }
+        .order-header { padding: var(--space-md); border-bottom: 3px solid var(--black); display: flex; justify-content: space-between; align-items: center; background: var(--white); }
+        .expiration-badge { display: flex; flex-direction: column; align-items: flex-end; color: var(--black); }
+        .expiration-badge.urgent { color: var(--hot-orange); animation: pulse 2s infinite; }
+        .order-items { padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-md); max-height: 400px; overflow-y: auto; }
+        .order-item { display: flex; gap: var(--space-md); align-items: center; padding-bottom: var(--space-sm); border-bottom: 1px dashed var(--gray-light); }
+        .order-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .order-footer { padding: var(--space-md); border-top: 3px solid var(--black); background: var(--gray-light); margin-top: auto; }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--space-3xl);
+            background: var(--gray-light);
+            border: var(--border-chunky) dashed var(--black);
+        }
+        .empty-icon { font-size: 4rem; margin-bottom: var(--space-lg); }
+        .empty-text { font-family: var(--font-display); font-size: 2rem; color: var(--gray-mid); margin-bottom: var(--space-md); }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         @media (max-width: 768px) {
           .form-grid { grid-template-columns: 1fr; }
           .admin-header { flex-direction: column; gap: var(--space-md); align-items: flex-start); }

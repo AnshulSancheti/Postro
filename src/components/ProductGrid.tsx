@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Product } from '../types';
 import ProductCard from './ProductCard';
-import { decreaseStock, getProduct } from '../firebase/products';
-import { logSale } from '../firebase/salesLog';
+import { useCart } from '../contexts/CartContext';
 import { useToast } from './ToastProvider';
 import '../index.css';
 
@@ -19,12 +18,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     products,
     searchTerm,
     activeCategory,
-    activeSubcategory,
-    onAddToCart
+    activeSubcategory
 }) => {
     const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
-    const { addToast } = useToast();
-
+    const { addToCart } = useCart();
 
     // Filter products based on search and category
     useEffect(() => {
@@ -60,37 +57,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     const handleProductSelect = async (product: Product) => {
         if (product.stock === 0) return;
 
-        // Optimistic UI could go here, but for now we just fire and forget
         try {
-            // Get current product data to ensure we have latest stock
-            const currentProduct = await getProduct(product.id);
-            if (!currentProduct || currentProduct.stock === 0) {
-                addToast('OUT OF STOCK • TRY ANOTHER DROP');
-                return;
-            }
-
-            // Decrease stock
-            await decreaseStock(product.id);
-
-            // Log the sale
-            await logSale(
-                product.id,
-                product.name,
-                product.category,
-                product.tags,
-                currentProduct.stock,
-                currentProduct.stock - 1
-            );
-
-            addToast(`${product.name.toUpperCase()} • ADDED TO CART`);
-            onAddToCart?.(product);
+            await addToCart(product);
         } catch (error) {
-            console.error('Error selecting product:', error);
-            addToast('ERROR • Failed to add item to cart');
+            console.error('Error adding to cart:', error);
+            // Toast is handled in CartContext
         }
     };
-
-
 
     if (filteredProducts.length === 0) {
         return (

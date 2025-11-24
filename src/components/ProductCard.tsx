@@ -93,16 +93,18 @@ const ProductCard: FC<ProductCardProps> = ({ product, onSelect }) => {
           onClick={handleClick}
           disabled={isSoldOut}
           className={clsx(
-            'mt-auto w-full border-t-[3px] border-dark px-6 py-4 text-xs font-bold uppercase tracking-[0.1em]',
-            'flex items-center justify-between bg-transparent text-dark transition-colors duration-200',
-            !isSoldOut && 'hover:bg-primary',
+            'mt-auto w-full border-t-[3px] border-dark px-6 py-5 text-sm font-black uppercase tracking-[0.15em]',
+            'flex items-center justify-between bg-transparent text-dark transition-all duration-200',
+            !isSoldOut && 'hover:bg-primary hover:pl-8 hover:pr-4',
             isSoldOut && 'cursor-not-allowed bg-dark text-main opacity-70'
           )}
           variants={isSoldOut ? undefined : buttonVariants}
           transition={isSoldOut ? undefined : springTransition}
         >
           <span>{isSoldOut ? 'SOLD OUT' : 'ADD TO CART'}</span>
-          <span className="text-xl">↗</span>
+          <span className="text-2xl font-black">
+            {isSoldOut ? '✕' : '+'}
+          </span>
         </motion.button>
       </div>
     </motion.div>

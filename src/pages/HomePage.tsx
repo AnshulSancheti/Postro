@@ -13,7 +13,7 @@ const HomePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [productTypeFilter, setProductTypeFilter] = useState<'poster' | 'sticker'>('poster');
   const [isLoading, setIsLoading] = useState(true);
-  const [orders, setOrders] = useState<{ product: Product; addedAt: Date }[]>([]);
+
 
   // Subscribe to real-time product updates
   useEffect(() => {
@@ -46,10 +46,6 @@ const HomePage: React.FC = () => {
       cta: 'SHOP MOVIES'
     }
   ];
-
-  const handleAddToCart = (product: Product) => {
-    setOrders((prev) => [{ product, addedAt: new Date() }, ...prev].slice(0, 6));
-  };
 
   // Filter products by type
   const filteredProducts = products.filter(product => product.type === productTypeFilter);
@@ -147,42 +143,8 @@ const HomePage: React.FC = () => {
               searchTerm={searchTerm}
               activeCategory=""
               activeSubcategory=""
-              onAddToCart={handleAddToCart}
             />
           )}
-        </div>
-      </section>
-
-      <section className="border-t-[3px] border-dark bg-surface/80 py-12">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-0">
-          <div className="rounded-none border-[3px] border-dark bg-main p-6 shadow-hard">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.5em] text-dark/40">Live Queue</p>
-                <h3 className="font-display text-3xl font-black uppercase tracking-tight text-dark">Orders & Cart</h3>
-              </div>
-            </div>
-            {orders.length === 0 ? (
-              <p className="mt-6 text-sm font-semibold uppercase tracking-[0.3em] text-dark/40">No items yet. Tap “Add to cart” to start the queue.</p>
-            ) : (
-              <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {orders.map((entry, index) => (
-                  <div
-                    key={`${entry.product.id}-${entry.addedAt.getTime()}-${index}`}
-                    className="flex flex-col gap-3 border-[3px] border-dark bg-surface p-4 shadow-hard"
-                  >
-                    <p className="text-xs font-bold uppercase tracking-[0.4em] text-dark/50">
-                      {entry.addedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                    <h4 className="font-display text-xl font-black uppercase tracking-tight text-dark">{entry.product.name}</h4>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-dark/60">
-                      {entry.product.category} • {entry.product.type}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </section>
 
